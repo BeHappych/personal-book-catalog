@@ -1,20 +1,24 @@
 package storage
 
 import (
+	"book-library/internal/models"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
 
+// Обертка над db
 type Storage struct {
 	db *sqlx.DB
 }
 
+// Создание новой
 func New(db *sqlx.DB) *Storage {
 	return &Storage{db: db}
 }
 
-func (s *Storage)СreateTables() error {
+// Функция создания таблиц на входе (если их нет)
+func (s *Storage) СreateTables() error {
 	fmt.Println("creat tables")
 
 	tables := []string{
@@ -46,5 +50,74 @@ func (s *Storage)СreateTables() error {
 	}
 
 	fmt.Println("Tables created successfully!")
+	return nil
+}
+
+func (s *Storage) CreateBook(book *models.Book) error {
+	// Валидация обязательных полей
+	if err := book.ValidateBook(); err != nil {
+		return fmt.Errorf("book validation failed: %w", err)
+	}
+
+	// Устанавливаем значения по умолчанию
+	book.SetDefaults()
+
+	query := `
+		INSERT INTO books (
+			title, author, genre, description, status, 
+			lent_to, lent_date, room, cabinet, shelf, row, created_at
+		) VALUES (
+			:title, :author, :genre, :description, :status,
+			:lent_to, :lent_date, :room, :cabinet, :shelf, :row, :created_at
+		) RETURNING id
+	`
+
+	// Выполняем запрос и получаем ID новой книги
+	rows, err := s.db.NamedQuery(query, book)
+	if err != nil {
+		return fmt.Errorf("failed to create book: %w", err)
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&book.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get book ID: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) SeedTestData() error {
+	books := []models.Book{
+		{
+			Title:       "Война и мир",
+			Author:      "Лев Толстой", 
+			Genre:       "Классика",
+			Room:        "Гостиная",
+			Cabinet:     1,
+			Shelf:       1,
+			Row:         1,
+		},
+		{
+			Title:       "Преступление и наказание",
+			Author:      "Федор Достоевский",
+			Genre:       "Классика", 
+			Room:        "Гостиная",
+			Cabinet:     1,
+			Shelf:       1,
+			Row:         2,
+		},
+	}
+
+	for i := range books {
+		err := s.CreateBook(&books[i])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Added book: %s (ID: %d)\n", books[i].Title, books[i].ID)
+	}
+
 	return nil
 }
