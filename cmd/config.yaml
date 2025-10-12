@@ -1,2 +1,6 @@
 db:
-  address: "123"
+  user: "developer"
+  password: "qwerty"
+  address: "localhost"
+  port: "5432"
+  database: bookcatalog
