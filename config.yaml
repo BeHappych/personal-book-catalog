@@ -4,3 +4,5 @@ db:
   address: "localhost"
   port: "5432"
   database: bookcatalog
+api:
+  port: "localhost:8080"

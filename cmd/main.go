@@ -1,10 +1,14 @@
 package main
 
 import (
+	"book-library/internal/api"
 	"book-library/internal/storage"
 	"fmt"
 	"net/url"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
@@ -20,12 +24,19 @@ func main() {
 
 	storage := storage.New(db)
 
-	storage.SeedTestData()
-
 	err := storage.СreateTables()
 	if err != nil {
 		panic(fmt.Errorf("failed to create tables: %w", err))
 	}
+
+	api := api.NewApi(*storage)
+	api.Start(viper.GetString("api.port"))
+
+	// storage.SeedTestData()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
 }
 
 func initConfigs() {

@@ -89,6 +89,80 @@ func (s *Storage) CreateBook(book *models.Book) error {
 	return nil
 }
 
+// Получение книги по ID
+func (s *Storage) GetBookByID(id int) (*models.Book, error) {
+    var book models.Book
+    query := `SELECT * FROM books WHERE id = $1`
+    err := s.db.Get(&book, query, id)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get book: %w", err)
+    }
+    return &book, nil
+}
+
+// Получение всех книг
+func (s *Storage) GetAllBooks(limit, offset int) ([]models.Book, error) {
+    var books []models.Book
+    query := `SELECT * FROM books ORDER BY id LIMIT $1 OFFSET $2`
+    err := s.db.Select(&books, query, limit, offset)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get books: %w", err)
+    }
+    return books, nil
+}
+
+// Обновление книги
+func (s *Storage) UpdateBook(book *models.Book) error {
+    if err := book.ValidateBook(); err != nil {
+        return fmt.Errorf("book validation failed: %w", err)
+    }
+    
+    query := `
+        UPDATE books SET
+            title = :title,
+            author = :author,
+            genre = :genre,
+            description = :description,
+            status = :status,
+            lent_to = :lent_to,
+            lent_date = :lent_date,
+            room = :room,
+            cabinet = :cabinet,
+            shelf = :shelf,
+            row = :row
+        WHERE id = :id
+    `
+    
+    result, err := s.db.NamedExec(query, book)
+    if err != nil {
+        return fmt.Errorf("failed to update book: %w", err)
+    }
+    
+    rowsAffected, _ := result.RowsAffected()
+    if rowsAffected == 0 {
+        return fmt.Errorf("book with id %d not found", book.ID)
+    }
+    
+    return nil
+}
+
+// Удаление книги
+func (s *Storage) DeleteBook(id int) error {
+    query := `DELETE FROM books WHERE id = $1`
+    result, err := s.db.Exec(query, id)
+    if err != nil {
+        return fmt.Errorf("failed to delete book: %w", err)
+    }
+    
+    rowsAffected, _ := result.RowsAffected()
+    if rowsAffected == 0 {
+        return fmt.Errorf("book with id %d not found", id)
+    }
+    
+    return nil
+}
+
+
 func (s *Storage) SeedTestData() error {
 	books := []models.Book{
 		{
