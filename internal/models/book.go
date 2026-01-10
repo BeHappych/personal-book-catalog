@@ -22,7 +22,19 @@ type Book struct {
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
-// устанавливаем значения по умолчанию
+// Структура для фильтров поиска
+type BookFilters struct {
+    Title     string
+    Author    string
+    Genre     string
+    Status    string
+    SortBy    string
+    SortOrder string
+    Limit     int
+    Offset    int
+}
+
+// Установка значений по умолчанию
 func (b *Book) SetDefaults() {
 	if b.Status == "" {
 		b.Status = "available"
@@ -32,7 +44,7 @@ func (b *Book) SetDefaults() {
 	}
 }
 
-//проверяем обязательные поля книги
+//Проверка обязательных полей книги
 func (book *Book) ValidateBook() error {
 	if book.Title == "" {
 		return fmt.Errorf("title is required")

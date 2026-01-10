@@ -1,2 +1,12 @@
-# personal-book-catalog
-A GUI-based tool to catalog and manage your personal library. Sort, search, and track your books effortlessly.
+# Каталог книг для личной библиотеки
+
+## Инструкция по запуску
+
+1) Перейти в директорию 
+```
+./personal-book-catalog/
+```
+2) Использовать команду 
+```
+make start
+```

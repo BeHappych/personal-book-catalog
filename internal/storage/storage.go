@@ -53,6 +53,7 @@ func (s *Storage) СreateTables() error {
 	return nil
 }
 
+// Создание книги
 func (s *Storage) CreateBook(book *models.Book) error {
 	// Валидация обязательных полей
 	if err := book.ValidateBook(); err != nil {
@@ -111,6 +112,65 @@ func (s *Storage) GetAllBooks(limit, offset int) ([]models.Book, error) {
     return books, nil
 }
 
+// Получение всех книг с фильтрами
+func (storage Storage) GetBooksWithFilters(filters models.BookFilters) ([]models.Book, error) {
+    var books []models.Book
+    
+    // Начинаем базовый запрос
+    query := `SELECT * FROM books WHERE 1=1`
+    args := []interface{}{}
+    argIndex := 1
+    
+    // Добавляем фильтры
+    if filters.Title != "" {
+        query += fmt.Sprintf(` AND title ILIKE $%d`, argIndex)
+        args = append(args, "%"+filters.Title+"%")
+        argIndex++
+    }
+    
+    if filters.Author != "" {
+        query += fmt.Sprintf(` AND author ILIKE $%d`, argIndex)
+        args = append(args, "%"+filters.Author+"%")
+        argIndex++
+    }
+    
+    if filters.Genre != "" {
+        query += fmt.Sprintf(` AND genre ILIKE $%d`, argIndex)
+        args = append(args, "%"+filters.Genre+"%")
+        argIndex++
+    }
+    
+    if filters.Status != "" {
+        query += fmt.Sprintf(` AND status = $%d`, argIndex)
+        args = append(args, filters.Status)
+        argIndex++
+    }
+    
+    // Добавляем сортировку
+    query += ` ORDER BY id`
+    
+    // Добавляем лимит и оффсет
+    if filters.Limit > 0 {
+        query += fmt.Sprintf(` LIMIT $%d`, argIndex)
+        args = append(args, filters.Limit)
+        argIndex++
+        
+        if filters.Offset > 0 {
+            query += fmt.Sprintf(` OFFSET $%d`, argIndex)
+            args = append(args, filters.Offset)
+        }
+    }
+    
+    // Выполняем запрос
+    err := storage.db.Select(&books, query, args...)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get books with filters: %w", err)
+    }
+    
+    return books, nil
+}
+
+
 // Обновление книги
 func (s *Storage) UpdateBook(book *models.Book) error {
     if err := book.ValidateBook(); err != nil {
@@ -160,38 +220,4 @@ func (s *Storage) DeleteBook(id int) error {
     }
     
     return nil
-}
-
-
-func (s *Storage) SeedTestData() error {
-	books := []models.Book{
-		{
-			Title:       "Война и мир",
-			Author:      "Лев Толстой", 
-			Genre:       "Классика",
-			Room:        "Гостиная",
-			Cabinet:     1,
-			Shelf:       1,
-			Row:         1,
-		},
-		{
-			Title:       "Преступление и наказание",
-			Author:      "Федор Достоевский",
-			Genre:       "Классика", 
-			Room:        "Гостиная",
-			Cabinet:     1,
-			Shelf:       1,
-			Row:         2,
-		},
-	}
-
-	for i := range books {
-		err := s.CreateBook(&books[i])
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Added book: %s (ID: %d)\n", books[i].Title, books[i].ID)
-	}
-
-	return nil
 }
